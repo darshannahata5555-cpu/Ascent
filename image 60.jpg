@@ -1,0 +1,350 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8" />
+<title>Ascent — Website</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<link rel="stylesheet" href="styles/tokens.css" />
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@500;600;700;800&family=Montserrat:wght@300;400;500;600;700&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+
+<script src="https://unpkg.com/react@18.3.1/umd/react.development.js" integrity="sha384-hD6/rw4ppMLGNu3tX5cjIb+uRZ7UkRJ6BPkLpg4hAu/6onKUg4lLsHAs9EBPT82L" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/react-dom@18.3.1/umd/react-dom.development.js" integrity="sha384-u6aeetuaXnQ38mYT8rp6sbXaQe3NL9t+IBXmnYxwkUI2Hw4bsp2Wvmx4yRQF1uAm" crossorigin="anonymous"></script>
+<script src="https://unpkg.com/@babel/standalone@7.29.0/babel.min.js" integrity="sha384-m08KidiNqLdpJqLq95G/LEi8Qvjl/xUYll3QILypMoQ65QorJ9Lvtp2RXYGBFj1y" crossorigin="anonymous"></script>
+
+<style>
+  html, body { height: 100%; margin: 0; }
+  body { background: #0A0A10; overflow: hidden; }
+  /* Canvas-specific bits */
+  .label-pill {
+    display: inline-flex; align-items: center; gap: 8px;
+    padding: 4px 10px; border-radius: 999px;
+    background: rgba(0,0,0,0.5); border: 1px solid rgba(255,255,255,0.1);
+    font-family: 'JetBrains Mono', monospace;
+    font-size: 10px; letter-spacing: 0.14em;
+    color: rgba(241,239,232,0.8); text-transform: uppercase;
+  }
+  .tweak-panel {
+    position: fixed; top: 16px; right: 16px; z-index: 1000;
+    width: 260px; padding: 18px 18px 16px;
+    background: rgba(15,15,22,0.92); border: 1px solid rgba(255,255,255,0.12);
+    backdrop-filter: blur(20px); border-radius: 12px;
+    color: #F1EFE8; font-family: 'Montserrat', sans-serif; font-size: 12px;
+    box-shadow: 0 20px 60px -20px rgba(0,0,0,0.6);
+    transform: translateX(calc(100% + 32px)); transition: transform .3s ease;
+  }
+  .tweak-panel.open { transform: none; }
+  .tweak-row { display: flex; justify-content: space-between; align-items: center; padding: 8px 0; border-top: 1px solid rgba(255,255,255,0.07); }
+  .tweak-row:first-of-type { border-top: 0; }
+  .tweak-toggle { position: fixed; top: 16px; right: 16px; z-index: 999;
+    width: 40px; height: 40px; border-radius: 10px;
+    background: rgba(15,15,22,0.92); border: 1px solid rgba(255,255,255,0.12);
+    color: #F1EFE8; cursor: pointer; display: grid; place-items: center;
+    font-family: 'JetBrains Mono', monospace; font-size: 12px;
+  }
+  .frame {
+    position: relative;
+    border-radius: 18px;
+    overflow: hidden;
+    background: #0D0D12;
+    box-shadow: 0 40px 100px -40px rgba(0,0,0,0.9), 0 0 0 1px rgba(255,255,255,0.06);
+  }
+  .frame-inner {
+    width: 100%; height: 100%;
+    overflow: auto;
+  }
+</style>
+</head>
+<body>
+<div id="root"></div>
+
+<script type="text/babel" src="design-canvas.jsx"></script>
+<script type="text/babel" src="components/shared.jsx"></script>
+<script type="text/babel" src="components/landing.jsx"></script>
+<script type="text/babel" src="components/auth.jsx"></script>
+<script type="text/babel" src="components/dashboard.jsx"></script>
+<script type="text/babel" src="components/discover.jsx"></script>
+<script type="text/babel" src="components/community.jsx"></script>
+<script type="text/babel" src="components/forms.jsx"></script>
+
+<script type="text/babel" data-presets="react">
+const TWEAKS = /*EDITMODE-BEGIN*/{
+  "accentHue": 250,
+  "gridOpacity": 0.035,
+  "glassBlur": 24,
+  "noise": true,
+  "ambient": true
+}/*EDITMODE-END*/;
+
+const PAGES = [
+  { id: 'landing',       label: '01 · LANDING',      C: () => <Landing onNav={setView} /> },
+  { id: 'credentials',   label: '02 · GET CREDENTIALS', C: () => <Credentials onNav={setView} /> },
+  { id: 'login',         label: '03 · LOGIN',        C: () => <Login onNav={setView} /> },
+  { id: 'dashboard',     label: '04 · DASHBOARD',    C: () => <Dashboard onNav={setView} /> },
+  { id: 'event-detail',  label: '05 · EVENT DETAIL', C: () => <EventDetail onNav={setView} /> },
+  { id: 'explore',       label: '06 · EXPLORE',      C: () => <Explore onNav={setView} /> },
+  { id: 'schedule',      label: '07 · SCHEDULE',     C: () => <Schedule onNav={setView} /> },
+  { id: 'leaderboard',   label: '08 · LEADERBOARD',  C: () => <Leaderboard onNav={setView} /> },
+  { id: 'mirage',        label: '09 · MIRAGE',       C: () => <Mirage onNav={setView} /> },
+  { id: 'announcements', label: '10 · ANNOUNCEMENTS',C: () => <Announcements onNav={setView} /> },
+  { id: 'lost-found',    label: '11 · LOST & FOUND', C: () => <LostFound onNav={setView} /> },
+  { id: 'rating',        label: '12 · RATING',       C: () => <Rating onNav={setView} /> },
+  { id: 'feedback',      label: '13 · FEEDBACK',     C: () => <Feedback onNav={setView} /> },
+  { id: 'report',        label: '14 · REPORT ISSUE', C: () => <Report onNav={setView} /> },
+];
+
+let setView;
+
+function ScreenFrame({ w, h, children, label, variant = 'desktop' }) {
+  return (
+    <DCArtboard
+      label={<span className="label-pill">{variant === 'mobile' ? '◻ ' + label + ' · 390w' : '▢ ' + label + ' · 1440w'}</span>}
+      width={w} height={h}
+      style={{ background: '#0D0D12', borderRadius: 18 }}
+    >
+      <div className="frame-inner" data-screen-label={label}>
+        {children}
+      </div>
+    </DCArtboard>
+  );
+}
+
+function App() {
+  const [tweakOpen, setTweakOpen] = React.useState(false);
+  const [t, setT] = React.useState(TWEAKS);
+
+  // Announce edit mode
+  React.useEffect(() => {
+    const onMsg = (e) => {
+      if (e.data?.type === '__activate_edit_mode') setTweakOpen(true);
+      if (e.data?.type === '__deactivate_edit_mode') setTweakOpen(false);
+    };
+    window.addEventListener('message', onMsg);
+    window.parent.postMessage({ type: '__edit_mode_available' }, '*');
+    return () => window.removeEventListener('message', onMsg);
+  }, []);
+
+  const updateTweak = (k, v) => {
+    setT(p => ({ ...p, [k]: v }));
+    window.parent.postMessage({ type: '__edit_mode_set_keys', edits: { [k]: v } }, '*');
+  };
+
+  // Apply tweaks to CSS vars
+  React.useEffect(() => {
+    const r = document.documentElement;
+    const hue = t.accentHue;
+    r.style.setProperty('--violet', `oklch(0.65 0.15 ${hue})`);
+    r.style.setProperty('--violet-dim', `oklch(0.65 0.15 ${hue} / 0.45)`);
+    r.style.setProperty('--violet-glow', `oklch(0.65 0.15 ${hue} / 0.28)`);
+  }, [t.accentHue]);
+
+  const Screens = PAGES;
+
+  return (
+    <>
+      <button className="tweak-toggle" onClick={() => setTweakOpen(o => !o)} title="Tweaks">≡</button>
+      <div className={`tweak-panel ${tweakOpen ? 'open' : ''}`}>
+        <div style={{ display: 'flex', justifyContent: 'space-between', alignItems: 'center', marginBottom: 10 }}>
+          <strong style={{ fontFamily: 'Syne, sans-serif', fontSize: 14, letterSpacing: '-0.01em' }}>Tweaks</strong>
+          <span onClick={() => setTweakOpen(false)} style={{ cursor: 'pointer', opacity: 0.6 }}>×</span>
+        </div>
+        <div style={{ fontSize: 10, opacity: 0.5, fontFamily: 'JetBrains Mono', letterSpacing: '0.1em', marginBottom: 4 }}>DIRECT LINKS</div>
+        <div style={{ display: 'flex', gap: 6, flexWrap: 'wrap', marginBottom: 14 }}>
+          {PAGES.slice(0, 6).map(p => (
+            <a key={p.id} href={'#'+p.id} style={{ padding: '3px 8px', fontSize: 10, borderRadius: 999, background: 'rgba(255,255,255,0.06)', color: '#F1EFE8', textDecoration: 'none', fontFamily: 'JetBrains Mono' }}>{p.id}</a>
+          ))}
+        </div>
+        <div className="tweak-row">
+          <span>Accent hue</span>
+          <input type="range" min="0" max="360" value={t.accentHue} onChange={e => updateTweak('accentHue', +e.target.value)} />
+        </div>
+        <div className="tweak-row">
+          <span>Glass blur</span>
+          <input type="range" min="0" max="40" value={t.glassBlur} onChange={e => updateTweak('glassBlur', +e.target.value)} />
+        </div>
+        <div className="tweak-row">
+          <span>Grid opacity</span>
+          <input type="range" min="0" max="0.1" step="0.005" value={t.gridOpacity} onChange={e => updateTweak('gridOpacity', +e.target.value)} />
+        </div>
+        <div className="tweak-row">
+          <span>Noise</span>
+          <input type="checkbox" checked={t.noise} onChange={e => updateTweak('noise', e.target.checked)} />
+        </div>
+        <div className="tweak-row">
+          <span>Ambient glows</span>
+          <input type="checkbox" checked={t.ambient} onChange={e => updateTweak('ambient', e.target.checked)} />
+        </div>
+        <div style={{ marginTop: 14, fontSize: 10, opacity: 0.5, lineHeight: 1.5, fontFamily: 'JetBrains Mono' }}>
+          Hint — each page is live. Click nav items inside screens; they'll route across the canvas.
+        </div>
+      </div>
+
+      <DesignCanvas>
+        {/* INTRO */}
+        <div style={{ padding: '0 60px 40px', maxWidth: 1200 }}>
+          <div style={{ fontFamily: 'JetBrains Mono, monospace', fontSize: 11, letterSpacing: '0.2em', color: 'rgba(30,20,10,0.6)' }}>
+            ASCENT · COLLEGE TECH FEST · MAY 16–17 · v0.1
+          </div>
+          <div style={{ fontFamily: 'Syne, sans-serif', fontWeight: 700, fontSize: 46, letterSpacing: '-0.025em', color: '#2A2016', marginTop: 10, maxWidth: 900, lineHeight: 1.05 }}>
+            Retro-futurism meets frosted glass — across 14 screens, desktop + mobile.
+          </div>
+          <div style={{ marginTop: 14, color: 'rgba(60,50,40,0.75)', fontSize: 14, lineHeight: 1.6, maxWidth: 720 }}>
+            Built on deep navy bases, electric violet accents, Syne display type and Montserrat body. Every screen is wired — click Login / Get Credentials on landing, click events to open their detail view, use the dashboard nav to move around. Scroll each artboard; the full pages live inside.
+          </div>
+          <div style={{ marginTop: 20, display: 'flex', gap: 10, flexWrap: 'wrap' }}>
+            {[
+              ['VIOLET','#7F77DD'],['TEAL','#1D9E75'],['OFF-WHITE','#F1EFE8'],['INK','#0D0D12'],
+            ].map(([l,c]) => (
+              <div key={l} style={{ display: 'flex', alignItems: 'center', gap: 6, padding: '4px 10px 4px 6px', background: 'rgba(0,0,0,0.04)', borderRadius: 999, fontFamily: 'JetBrains Mono, monospace', fontSize: 10, letterSpacing: '0.1em', color: '#3A2E20' }}>
+                <div style={{ width: 14, height: 14, borderRadius: 999, background: c, border: '1px solid rgba(0,0,0,0.1)' }}/> {l} · {c}
+              </div>
+            ))}
+          </div>
+        </div>
+
+        {/* LANDING — hero on its own row */}
+        <DCSection title="Landing Page" subtitle="The showpiece. Countdown to fest, mouse-reactive spotlight, animated counters, sponsor wall, FAQ.">
+          <ScreenFrame w={1440} h={900} label="01 · Landing · Desktop">
+            <LandingView />
+          </ScreenFrame>
+          <ScreenFrame w={390} h={844} label="01 · Landing · Mobile" variant="mobile">
+            <LandingView mobile />
+          </ScreenFrame>
+        </DCSection>
+
+        {/* AUTH */}
+        <DCSection title="Access" subtitle="Credentials are issued by organizers — no self-signup. Login has an animated border glow and a verification note.">
+          <ScreenFrame w={1440} h={900} label="02 · Get Credentials">
+            <CredentialsView />
+          </ScreenFrame>
+          <ScreenFrame w={1440} h={900} label="03 · Login">
+            <LoginView />
+          </ScreenFrame>
+          <ScreenFrame w={390} h={844} label="03 · Login · Mobile" variant="mobile">
+            <LoginView />
+          </ScreenFrame>
+        </DCSection>
+
+        {/* APP CORE */}
+        <DCSection title="Core App" subtitle="Once in: dashboard, event detail with seating map, and the Unstop-linked events grid.">
+          <ScreenFrame w={1440} h={900} label="04 · Dashboard">
+            <DashboardView />
+          </ScreenFrame>
+          <ScreenFrame w={390} h={844} label="04 · Dashboard · Mobile" variant="mobile">
+            <DashboardView />
+          </ScreenFrame>
+          <ScreenFrame w={1440} h={900} label="05 · Event Detail">
+            <EventDetailView />
+          </ScreenFrame>
+          <ScreenFrame w={1440} h={900} label="06 · Explore Events">
+            <ExploreView />
+          </ScreenFrame>
+        </DCSection>
+
+        {/* PLANNING */}
+        <DCSection title="Plan the weekend" subtitle="Time + standings.">
+          <ScreenFrame w={1440} h={900} label="07 · Schedule">
+            <ScheduleView />
+          </ScreenFrame>
+          <ScreenFrame w={1440} h={900} label="08 · Leaderboard">
+            <LeaderboardView />
+          </ScreenFrame>
+          <ScreenFrame w={390} h={844} label="08 · Leaderboard · Mobile" variant="mobile">
+            <LeaderboardView />
+          </ScreenFrame>
+        </DCSection>
+
+        {/* COMMUNITY */}
+        <DCSection title="Campus pulse" subtitle="Gallery, notice board, lost & found — the living threads of the weekend.">
+          <ScreenFrame w={1440} h={900} label="09 · Mirage Gallery">
+            <MirageView />
+          </ScreenFrame>
+          <ScreenFrame w={1440} h={900} label="10 · Announcements">
+            <AnnouncementsView />
+          </ScreenFrame>
+          <ScreenFrame w={1440} h={900} label="11 · Lost & Found">
+            <LostFoundView />
+          </ScreenFrame>
+        </DCSection>
+
+        {/* FEEDBACK */}
+        <DCSection title="After-action" subtitle="Rate individual events, submit anonymous fest-wide feedback, report an issue with live status tracking.">
+          <ScreenFrame w={1440} h={900} label="12 · Rating">
+            <RatingView />
+          </ScreenFrame>
+          <ScreenFrame w={1440} h={900} label="13 · Feedback">
+            <FeedbackView />
+          </ScreenFrame>
+          <ScreenFrame w={1440} h={900} label="14 · Report Issue">
+            <ReportView />
+          </ScreenFrame>
+        </DCSection>
+
+        <div style={{ padding: '40px 60px 120px', fontFamily: 'JetBrains Mono, monospace', fontSize: 11, color: 'rgba(30,20,10,0.5)', letterSpacing: '0.12em' }}>
+          END OF ARTBOARDS · 14 PAGES · PAN/ZOOM WITH TRACKPAD · MIDDLE-DRAG TO PAN
+        </div>
+      </DesignCanvas>
+    </>
+  );
+}
+
+// ─── Per-screen views with their own local route state ─────────────────
+// Each artboard has an independent page — so clicking "Login" inside
+// one card doesn't reset the others.
+function makeView(initial) {
+  return function View(props) {
+    const [view, setLocalView] = React.useState(initial);
+    const onNav = (v) => setLocalView(v);
+    const page = PAGES.find(p => p.id === view);
+    const P = page ? page.C : PAGES[0].C;
+    // rebind setView to LOCAL — each card independent
+    const prev = setView;
+    setView = onNav;
+    try {
+      return <PageHost onNav={onNav} id={view} />;
+    } finally {
+      setView = prev;
+    }
+  };
+}
+
+function PageHost({ onNav, id }) {
+  switch (id) {
+    case 'landing':       return <Landing onNav={onNav}/>;
+    case 'credentials':   return <Credentials onNav={onNav}/>;
+    case 'login':         return <Login onNav={onNav}/>;
+    case 'dashboard':     return <Dashboard onNav={onNav}/>;
+    case 'event-detail':  return <EventDetail onNav={onNav}/>;
+    case 'explore':       return <Explore onNav={onNav}/>;
+    case 'schedule':      return <Schedule onNav={onNav}/>;
+    case 'leaderboard':   return <Leaderboard onNav={onNav}/>;
+    case 'mirage':        return <Mirage onNav={onNav}/>;
+    case 'announcements': return <Announcements onNav={onNav}/>;
+    case 'lost-found':    return <LostFound onNav={onNav}/>;
+    case 'rating':        return <Rating onNav={onNav}/>;
+    case 'feedback':      return <Feedback onNav={onNav}/>;
+    case 'report':        return <Report onNav={onNav}/>;
+    default:              return <Landing onNav={onNav}/>;
+  }
+}
+
+const LandingView       = makeView('landing');
+const CredentialsView   = makeView('credentials');
+const LoginView         = makeView('login');
+const DashboardView     = makeView('dashboard');
+const EventDetailView   = makeView('event-detail');
+const ExploreView       = makeView('explore');
+const ScheduleView      = makeView('schedule');
+const LeaderboardView   = makeView('leaderboard');
+const MirageView        = makeView('mirage');
+const AnnouncementsView = makeView('announcements');
+const LostFoundView     = makeView('lost-found');
+const RatingView        = makeView('rating');
+const FeedbackView      = makeView('feedback');
+const ReportView        = makeView('report');
+
+ReactDOM.createRoot(document.getElementById('root')).render(<App/>);
+</script>
+</body>
+</html>
